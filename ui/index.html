@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en"> 
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+            * { box-sizing: border-box; }
+            html {
+                display: flex;
+                height: 100%;
+                background: linear-gradient( 127deg, #353053 -40%, #141018 45%);
+                overflow: hidden;
+                scrollbar-width: 2px;
+                scrollbar-color: #9198e5;
+            }
+            body {
+                display: flex;
+                flex: 1;
+                margin:0px;
+            }
+            
+            .container {
+                display: flex;
+                width: 100%;
+                flex-direction: column;
+                flex:1;
+                overflow: hidden;
+            }
+
+            .tracks {
+                display: flex;
+                align-items: center;
+                position: relative;
+                height: 180px;
+                justify-content: center;
+                margin-top:-120px;
+            }
+
+            .song {
+                display: flex;
+                align-items: center;
+                border-radius: 6px;
+                transition: all .3s;;
+                position: absolute;
+                box-shadow: 5px 10px 15px #00000050;
+            }
+
+            .current { 
+                width: 130px;
+                height: 130px;
+                z-index: 1100000;
+                background-size: cover;
+                background-position: center center; 
+            }
+            .prev, .next {
+                width: 90px;
+                height: 90px;
+                transform: translateX(75px);
+                background-size: cover;
+                background-position: center center;
+                filter: grayscale(1);
+            }
+            .prev {
+                transform: translateX(-75px);
+            }
+
+            .songs-list {
+                display: flex;
+                flex:1;
+                flex-direction: column;
+                font-size: 15px;
+                overflow: auto;
+            }
+            .songs-list-fixed {
+                max-height: 240px;
+            }
+            .song-item {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                padding:8px 25px;
+                border-bottom: 1px solid #ffffff08;
+                color:#ffffff50;
+                min-height: 60px;
+            }
+                
+            .song-item:hover, .song-item-active {
+                color: #fff;
+            }
+            .song-item:hover::before, .song-item-active::before {
+                position: absolute;
+                content: ' ';
+                display: flex;
+                height: 8px;
+                width: 8px;
+                background-color: #ff61d2;
+                border-radius: 100%;
+                left:7px;
+            }
+            .song-item span {
+                color:#ffffff30;
+            }
+
+            .track{
+                display: flex;
+                flex-direction: column;
+                color: #ffffff;
+                font-size: 15px;
+                justify-content: center;
+                align-items: center;
+                width: 100%;
+                padding:15px 20px;
+                background-color: #9198e520;
+                position: relative;
+                transition: all .3s;
+            }
+            .track input {
+                margin:15px 0px;
+                width: 100%;
+                height: 8px;
+            }
+            .track .duration-container{
+                display: flex; 
+                justify-content: space-between; 
+                width: 100%;
+            }
+            
+            .hide {
+                display: none !important;
+            }
+
+            .controls {
+                background-color: #141018;
+                position: relative;
+                display: flex;
+                justify-content: space-around;
+                width: 100%;
+                height: 70px;
+                z-index: 9999;
+            }
+            .controls::before {
+                content: ' ';
+                display: flex;
+                position: absolute;
+                left: 0px;
+                right: 0px;
+                height: 2px; 
+                background: linear-gradient(45deg, #ff61d2, #ffffff00, #9198e5);
+            }
+
+            .controls button {
+                border:0px;
+                background-color: transparent;
+                display: flex;
+                justify-content: center;
+                align-items: center; 
+            }
+
+            .controls .play-button {
+                background-color: #ff61d2;
+                width: 65px;
+                height:65px;
+                border-radius: 100%;
+                outline: 6px solid #ffffff20;
+                margin-top:-32px;
+                transition: all .3s;
+            }
+        </style>
+    </head>
+    <body>
+
+        <div class="container">
+            
+            <div class="container">
+                <div class="songs-list songs-list-fixed" id="song_list"></div>
+                <div style="display: flex; justify-content: center;">
+                    <div id="expand">
+                        <svg xmlns="http://www.w3.org/2000/svg" height="54px" viewBox="0 -960 960 960" width="54px" fill="#e8eaed"><path d="M480-371.69 267.69-584 296-612.31l184 184 184-184L692.31-584 480-371.69Z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="track">
+                <div class="tracks" id="tracks"></div>
+                <div id="song_title"></div>
+                <div id="song_artist"></div>
+
+                <audio id="audio">
+                    <source id="source" type="audio/mp3" />
+                </audio>
+                
+                <input type="range" min="0" max="1000" id="song_duration" value="0" />
+
+                <div class="duration-container">
+                    <span id="song_time_update"></span>
+                    <span id="song_time_duration"></span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <button id="prev">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="44px" viewBox="0 -960 960 960" width="44px" fill="#e8eaed"><path d="M269.23-295.38v-369.24h40v369.24h-40Zm421.54 0L413.85-480l276.92-184.62v369.24Zm-40-184.62Zm0 110v-220L485.54-480l165.23 110Z"/></svg>
+                </button>
+                <button id="play" class="play-button" data-state="playing">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="54px" viewBox="0 -960 960 960" width="54px" fill="#e8eaed"><path d="M360-272.31v-415.38L686.15-480 360-272.31ZM400-480Zm0 134 211.54-134L400-614v268Z"/></svg>
+                </button>
+                <button id="next">
+                    <svg xmlns="http://www.w3.org/2000/svg" height="44px" viewBox="0 -960 960 960" width="44px" fill="#e8eaed"><path d="M650.77-295.38v-369.24h40v369.24h-40Zm-381.54 0v-369.24L546.15-480 269.23-295.38Zm40-184.62Zm0 110 165.23-110-165.23-110v220Z"/></svg>
+                </button>                                                
+            </div>
+        </div>
+
+        <script>
+
+            const invoke = window.__TAURI__.core.invoke;
+
+            const app = {
+
+                songs : [],
+                songIndex : 0,
+                activeItem : null,
+
+                async init(){
+
+                    app.songs = await invoke("get_songs"); 
+
+                    let zIndex = app.songs.length - 1;
+
+                    for(let idx in app.songs){
+                        let song = app.songs[idx];
+
+                        let songDiv = document.createElement("div");
+
+                        if(idx == 0){
+                            songDiv.classList.add("song", "current");
+                        }else{
+                            songDiv.classList.add("song", "next");
+                        }
+                        songDiv.style.zIndex = "-" + idx;
+
+                        let url = "data:image/png;base64," + song.image
+                        songDiv.style.backgroundImage = "url('" + url + "')"; 
+                        
+                        document.querySelector("#tracks").appendChild(songDiv);
+
+                        let songItem = document.createElement("div");
+                        let songTitle = document.createElement("div");
+                        let songArtist = document.createElement("span");
+
+                        songItem.classList.add("song-item");
+                        songTitle.innerHTML = song.title;
+                        songArtist.innerHTML = song.artist;
+
+                        songItem.appendChild(songTitle);
+                        songItem.appendChild(songArtist);
+
+                        if(idx == 0){
+                            songItem.classList.add("song-item-active");
+                            app.activeItem = songItem;
+                        }
+
+                        songItem.addEventListener("click", async function(){
+                            let current = document.querySelector(".current");
+                            current.classList.replace("current", "prev");
+                            current.style.zIndex = 0;
+
+                            let newCurrent = document.querySelectorAll(".song")[idx];
+                            newCurrent.classList.remove("prev", "next");
+                            newCurrent.classList.add("current");
+                            newCurrent.style.zIndex = app.songs.length;
+
+
+                            document.querySelector("#song_list").classList.add("songs-list-fixed");
+                            document.querySelector(".track").classList.remove("hide");
+                            document.querySelector(".controls").classList.remove("hide");                          
+
+                            app.songIndex = idx;
+                            await app.play();
+                        });
+
+                        document.querySelector("#song_list").appendChild(songItem);
+                    }
+                    
+                    document.querySelector("#prev").addEventListener("click", async function(){
+                        if(zIndex < app.songs.length -1){
+                            zIndex++;
+
+                            let current = document.querySelector(".current");
+                            let prev = current.previousElementSibling;
+
+                            current.classList.replace("current", "next");
+                            current.style.zIndex = zIndex;
+
+                            prev.style.zIndex = app.songs.length + 1; 
+                            prev.classList.replace("prev", "current"); 
+
+                            app.songIndex--;
+
+                            await app.play();
+                        }
+                    });
+
+                    document.querySelector("#next").addEventListener("click", async function(){
+                        
+                        if(zIndex > 0){
+                            zIndex--;
+                            let current = document.querySelector(".current");
+                            let next = current.nextElementSibling;
+
+                            current.classList.replace("current", "prev");
+                            current.style.zIndex = '-' + zIndex;
+
+                            next.style.zIndex = app.songs.length + 1; 
+                            next.classList.replace("next", "current"); 
+                            
+                            app.songIndex++;
+
+                            await app.play();
+                        }
+                    });
+
+                    document.querySelector("#play").addEventListener("click", async function(){
+                        await app.play();
+                    });
+
+                    document.querySelector("#expand").addEventListener("click", function(){
+                        document.querySelector("#song_list").classList.remove("songs-list-fixed");
+                        document.querySelector(".track").classList.add("hide");
+                        document.querySelector(".controls").classList.add("hide");
+                    });
+
+                    await app.play(); 
+                },
+
+                async play(){
+
+                    let audio = document.querySelector("#audio");
+
+                    let result = await fetch("http://127.0.0.1:8000/" + app.songs[app.songIndex].file_name);
+                    let blob = await result.blob();
+
+                    let url = window.URL.createObjectURL(blob);
+
+                    audio.src = url;
+
+                    if(app.activeItem){
+                        app.activeItem.classList.remove("song-item-active");
+                    }
+                    app.activeItem = document.querySelectorAll(".song-item")[app.songIndex];
+                    app.activeItem.classList.add("song-item-active");
+
+                    document.querySelector("#song_title").innerHTML = app.songs[app.songIndex].title;
+                    document.querySelector("#song_artist").innerHTML = app.songs[app.songIndex].artist;
+
+                    audio.onloadedmetadata = () => {
+                        document.querySelector("#song_duration").max = audio.duration;
+                        document.querySelector("#song_time_duration").innerHTML = parseInt(audio.duration) + "s";
+                    };
+
+                    audio.ontimeupdate = () => {
+                        document.querySelector("#song_duration").value = audio.currentTime;
+                        document.querySelector("#song_time_update").innerHTML = parseInt(audio.currentTime) + "s";
+                    };
+
+                    audio.play();
+                }
+            }
+
+            app.init();
+
+        </script>
+    </body>
+</html>
